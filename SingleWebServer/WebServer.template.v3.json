@@ -1,0 +1,93 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Single Instance",
+  "Parameters": {
+    "KeyName": {
+      "Description" : "Choose a Key Pair that is available in this region",
+      "Type": "AWS::EC2::KeyPair::KeyName",
+      "ConstraintDescription": "Must be the name of an existing EC2 Key Pair"
+    },
+    "SecurityGroup": {
+      "Description" : "Security Groups",
+      "Type": "AWS::EC2::SecurityGroup::GroupName",
+      "ConstraintDescription": "This must be a valid Security Group Id"
+    },
+    "InstanceType": {
+      "Description" : "Choose an instance type",
+      "Type": "String",
+      "ConstraintDescription": "Must be in the list of allowed instance types",
+      "Default" : "t2.micro",
+      "AllowedValues": [
+        "t2.micro",
+        "t2.nano",
+        "t2.small",
+        "t2.medium",
+        "t2.large"
+      ]
+    }
+  },
+  "Mappings": {
+    "AWSInstanceType2Arch": {
+      "t2.nano": { "Arch": "HVM64" },
+      "t2.micro": { "Arch": "HVM64" }
+    },
+    "AWSRegionArch2AMI": {
+      "us-east-1": {
+        "PV64": "ami-668f1e70",
+        "HVM64": "ami-c58c1dd3"
+      }
+    }
+  },
+  "Resources": {
+    "WebServer": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionArch2AMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Fn::FindInMap": [
+                "AWSInstanceType2Arch",
+                {
+                  "Ref": "InstanceType"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "InstanceType": { "Ref": "InstanceType" },
+        "SecurityGroups": [ { "Ref": "SecurityGroup" } ],
+        "KeyName": { "Ref": "KeyName" },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "WebServer"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "WebserverURL": {
+      "Description": "URL for the newly created webserver instance",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "http://",
+            {
+              "Fn::GetAtt": [
+                "WebServer",
+                "PublicDnsName"
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  }
+}
